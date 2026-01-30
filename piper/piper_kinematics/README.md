@@ -1,71 +1,68 @@
-# Piper_kinematics-松灵PiPER机械臂运动学工具
+# Piper_kinematics - AgileX PiPER Robotic Arm Kinematics Tool
 
-通过Eigen库实现松灵PiPER机械臂的运动学逆解示例
+Implementation of inverse kinematics for AgileX PiPER robotic arm using the Eigen library.
 
 ![alt text](doc/image-2.gif)
 
-## 标签
+## Tags
 - Eigen
-- 运动学逆解
-- 松灵PiPER机械臂
+- Inverse Kinematics
+- AgileX PiPER Robotic Arm
 - Eigen3
 
-## 仓库
-- Piper_kinematics:[https://github.com/vanstrong12138/Piper_kinematics](https://github.com/vanstrong12138/Piper_kinematics)
-- Agilex-College:[https://github.com/agilexrobotics/Agilex-College](https://github.com/agilexrobotics/Agilex-College)
+## Repository
+- Piper_kinematics: [https://github.com/vanstrong12138/Piper_kinematics](https://github.com/vanstrong12138/Piper_kinematics)
+- Agilex-College: [https://github.com/agilexrobotics/Agilex-College](https://github.com/agilexrobotics/Agilex-College)
 
-## 环境配置：
+## Environment Setup
 
-- 安装Eigen3
+- Install Eigen3
 ```bash
 sudo apt install libeigen3-dev
-sudo apt install ros-noetic-eigen-conversions 
+sudo apt install ros-noetic-eigen-conversions
 ```
 
-## 编译
+## Build
 ```bash
 cd your_ws
 source devel/setup.sh
 catkin_make
 ```
 
-## 运行RVIZ仿真
+## Run RViz Simulation
 
-1. 启动RVIZ仿真
+1. Launch RViz simulation
 ```bash
 roslaunch piper_description display_nocap_urdf_ik.launch
 ```
 
-2. 启动运动学逆解节点
+2. Launch inverse kinematics node
 ```bash
 roslaunch piper_kinematics piper_ik.launch
 ```
 
-3. 在RVIZ中interactive_marker_utils实现三维空间目标点发布
+3. Use interactive_marker_utils in RViz to publish 3D target positions
 ![alt text](doc/image.png)
 ![alt text](doc/image-1.png)
 
-## 真机部署
+## Real Robot Deployment
 
-1. 激活CAN通信
+1. Activate CAN communication
 ```bash
 cd piper_ros
-./find_all_can_port.sh 
-./can_activate.sh 
+./find_all_can_port.sh
+./can_activate.sh
 ```
 
-2. 启动PIPER真机控制节点
+2. Launch PiPER real robot control node
 ```bash
 roslaunch piper_kinematics start_single_piper_ik_rviz.launch
 ```
 
-3. 启动运动学逆解节点
+3. Launch inverse kinematics node
 ```bash
 roslaunch piper_kinematics piper_ik.launch
 ```
 
-4. 在RVIZ中interactive_marker_utils实现三维空间目标点发布
+4. Use interactive_marker_utils in RViz to publish 3D target positions
 ![alt text](doc/image-2.gif)
-
-
-
