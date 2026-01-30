@@ -18,6 +18,8 @@ if __name__ == "__main__":
     piper.ConnectPort()
     time.sleep(0.1)
 
+
+
     def get_pos():
         '''Get current joint angles and gripper opening distance'''
         joint_state = piper.GetArmJointMsgs().joint_state

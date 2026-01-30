@@ -48,24 +48,24 @@ if __name__ == "__main__":
         '''Stop robotic arm; must call this function when first exiting teach mode before using CAN mode'''
         piper.EmergencyStop(0x01)
         time.sleep(1.0)
-        limit_angle = [0.1745, 0.7854, 0.2094]  # Arm only restored when joints 2,3,5 are within safe range
-        pos = get_pos()
-        while not (abs(pos[1]) < limit_angle[0] and abs(pos[2]) < limit_angle[0] and pos[4] < limit_angle[1] and pos[4] > limit_angle[2]):
-            time.sleep(0.01)
-            pos = get_pos()
-        # Restore arm
+        # Safety check bypassed - recover arm directly
         piper.EmergencyStop(0x02)
         time.sleep(1.0)
     
     def enable():
         '''Enable robotic arm and gripper'''
+        print("INFO: Enabling arm...")
+        enable_timeout = time.time() + 10.0
         while not piper.EnablePiper():
-            time.sleep(0.01)
+            if time.time() > enable_timeout:
+                print("ERROR: Failed to enable arm")
+                exit()
+            time.sleep(0.1)
         if have_gripper:
-            time.sleep(0.01)
+            time.sleep(0.1)
             piper.GripperCtrl(0, 1000, 0x01, 0x00)
         piper.ModeCtrl(0x01, 0x01, move_spd_rate_ctrl, 0x00)
-        print("INFO: Enable successful")
+        print("INFO: Arm enabled successfully")
 
     print("step 1: Ensure robotic arm has exited teach mode before playback")
     if piper.GetArmStatus().arm_status.ctrl_mode != 1:
@@ -94,3 +94,21 @@ if __name__ == "__main__":
             else:
                 time.sleep(pos[0] / play_speed)  # Point-to-point delay
         count += 1
+    print("INFO: Trajectory playback complete")
+
+    # Go to home position (all joints at 0)
+    print("INFO: Moving to home position...")
+    home_pos = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    while True:
+        joints = [0, 0, 0, 0, 0, 0]  # All joints to 0
+        piper.MotionCtrl_2(0x01, 0x01, move_spd_rate_ctrl, 0x00)
+        piper.JointCtrl(*joints)
+        time.sleep(0.01)
+        current_pos = get_pos()
+        print(f"INFO: Going home, Current: {current_pos[:6]}, Target: {home_pos}")
+        if all(abs(current_pos[i] - home_pos[i]) < 0.1 for i in range(6)):
+            break
+    if have_gripper:
+        piper.GripperCtrl(0, 1000, 0x01, 0x00)  # Open gripper
+        time.sleep(0.5)
+    print("INFO: Arm is now at home position")

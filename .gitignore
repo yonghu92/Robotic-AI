@@ -1,0 +1,46 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Large external folders (not our code)
+Agilex-College/
+ArmPi Ultra-20260121T171349Z-3-003/
+lerobot_piper_real/
+lerobot_piper_real_with_camera2/
+piper_sdk/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Large data files (optional - uncomment if needed)
+# *.csv
+# datasets/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/

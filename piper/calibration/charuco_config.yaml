@@ -1,0 +1,27 @@
+# ChArUco Board Calibration Parameters
+# Use these values in hand_eye_calibration.py
+
+# A3 Board (RECOMMENDED - larger = more accurate)
+A3:
+  squares_x: 6
+  squares_y: 8
+  square_size_meters: 0.05
+  marker_size_meters: 0.038
+  file: charuco_board_A3.png
+
+# A4 Board
+A4:
+  squares_x: 6
+  squares_y: 9
+  square_size_meters: 0.03
+  marker_size_meters: 0.023
+  file: charuco_board_A4.png
+
+# PRINTING INSTRUCTIONS:
+# 1. Print at 100% scale (NO fit-to-page, NO scaling)
+# 2. After printing, measure a square with ruler:
+#    - A3: should be 5.0 cm x 5.0 cm
+#    - A4: should be 3.0 cm x 3.0 cm
+# 3. If size is wrong, adjust printer settings and reprint
+# 4. Mount on flat, rigid surface (cardboard, foam board)
+# 5. For 2-board setup: place both boards in workspace for better coverage

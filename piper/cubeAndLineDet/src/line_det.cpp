@@ -1,18 +1,16 @@
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <image_transport/image_transport.h>
-#include <visualization_msgs/MarkerArray.h>
-#include <geometry_msgs/Point.h>
+#include <cv_bridge/cv_bridge.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <image_transport/image_transport.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include <geometry_msgs/msg/point.hpp>
 #include <pcl/point_types.h>
 #include <pcl/filters/radius_outlier_removal.h>
 #include <pcl/point_cloud.h>
 #include <pcl/surface/mls.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 #include <pcl/common/io.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -23,25 +21,32 @@
 #include <vector>
 #include <Eigen/Dense>
 #include <unsupported/Eigen/Splines>
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <line_segment.hpp>
 // #include <line_fill.hpp>
 #include <test_fitting.hpp>
+#include <memory>
+#include <chrono>
+
+using namespace std::chrono_literals;
 
 CurveSegment::Parameters params;
 // CurveReconstructor::Parameters line_fill_params;
 CurveFitter3D::Parameters params_fiiting;
 
-class LineDetector {
+class LineDetector : public rclcpp::Node {
 public:
-    LineDetector(ros::NodeHandle& nh) : nh_(nh) {
-        // Initialize parameters with default values
-        nh_.param<std::string>("image_topic_name", image_topic_, "/camera/color/image_raw");
-        // nh_.param<std::string>("camera_info_topic_name", camera_info_topic_, "/camera/depth/camera_info");   
-        // nh_.param<std::string>("depth_topic_name", depth_topic_, "/camera/depth/image_raw");
-        nh_.param<std::string>("camera_info_topic_name", camera_info_topic_, "/camera/aligned_depth_to_color/camera_info");     //for realsense
-        nh_.param<std::string>("depth_topic_name", depth_topic_, "/camera/aligned_depth_to_color/image_raw");    //for realsense
+    LineDetector() : Node("line_detection_node") {
+        // Declare parameters with default values
+        this->declare_parameter<std::string>("image_topic_name", "/camera/color/image_raw");
+        this->declare_parameter<std::string>("camera_info_topic_name", "/camera/aligned_depth_to_color/camera_info");
+        this->declare_parameter<std::string>("depth_topic_name", "/camera/aligned_depth_to_color/image_raw");
+        
+        // Get parameters
+        image_topic_ = this->get_parameter("image_topic_name").as_string();
+        camera_info_topic_ = this->get_parameter("camera_info_topic_name").as_string();
+        depth_topic_ = this->get_parameter("depth_topic_name").as_string();
         
         
         // Camera parameters (initialize with default values)
@@ -59,15 +64,18 @@ public:
         vmax_ = 255; vmax_max_ = 255;
         h_range_ = 30; s_range_ = 50; v_range_ = 50;
         
-        // Setup ROS subscribers
-        image_sub_ = nh_.subscribe(image_topic_, 1, &LineDetector::imageCallback, this);
-        info_sub_ = nh_.subscribe(camera_info_topic_, 1, &LineDetector::cameraInfoCallback, this);
-        depth_sub_ = nh_.subscribe(depth_topic_, 1, &LineDetector::depthCallback, this);
+        // Setup ROS 2 subscribers
+        image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+            image_topic_, 1, std::bind(&LineDetector::imageCallback, this, std::placeholders::_1));
+        info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+            camera_info_topic_, 1, std::bind(&LineDetector::cameraInfoCallback, this, std::placeholders::_1));
+        depth_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+            depth_topic_, 1, std::bind(&LineDetector::depthCallback, this, std::placeholders::_1));
 
-        // Setup ROS publishers
-        marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/line_points_markers", 1);
-        marked_image_pub_ = nh_.advertise<sensor_msgs::Image>("/line_detection/marked_image", 1);
-        line_path_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/line_path", 10);
+        // Setup ROS 2 publishers
+        marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/line_points_markers", 1);
+        marked_image_pub_ = this->create_publisher<sensor_msgs::msg::Image>("/line_detection/marked_image", 1);
+        line_path_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/line_path", 10);
         
         // Create windows and trackbars
         cv::namedWindow("origin_image", cv::WINDOW_GUI_EXPANDED);
@@ -82,27 +90,27 @@ public:
     }
     
     void run() {
-        ros::Rate rate(30);
-        while (ros::ok()) {
+        timer_ = this->create_wall_timer(33ms, [this]() {
             if (image_received_ && !image_.empty()) {
                 processFrame();
             }
             
             int key = cv::waitKey(1);
             if (key == 27) {  // ESC key
-                break;
+                rclcpp::shutdown();
             }
-            
-            ros::spinOnce();
-            rate.sleep();
-        }
+        });
+        rclcpp::spin(this->shared_from_this());
     }
 
 private:
-    // ROS members
-    ros::NodeHandle nh_;
-    ros::Subscriber image_sub_, info_sub_, depth_sub_;
-    ros::Publisher marker_pub_, marked_image_pub_, line_path_pub_;
+    // ROS 2 members
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_, depth_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr marked_image_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr line_path_pub_;
+    rclcpp::TimerBase::SharedPtr timer_;
     std::string image_topic_, camera_info_topic_, depth_topic_;
     
     // Image data
@@ -169,7 +177,7 @@ private:
     cv::Point3f pixelTo3D(const cv::Point& pixel, float depth, float depth_scale = 1.0f / 1000.0f) {
         // 1. 检查输入有效性
         if (depth <= 0 || !camera_info_received_ || K_.empty()) {
-            ROS_WARN_THROTTLE(1.0, "Invalid input: depth=%f, K_ empty=%d", depth, K_.empty());
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Invalid input: depth=%f, K_ empty=%d", depth, K_.empty());
             return cv::Point3f(0, 0, 0);
         }
 
@@ -184,7 +192,7 @@ private:
         // const float cy = 200.88180541992188;
 
         if (fx <= 1e-6f || fy <= 1e-6f) {
-            ROS_ERROR_THROTTLE(1.0, "Invalid camera intrinsics: fx=%f, fy=%f", fx, fy);
+            RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "Invalid camera intrinsics: fx=%f, fy=%f", fx, fy);
             return cv::Point3f(0, 0, 0);
         }
 
@@ -205,43 +213,43 @@ private:
     void publishPointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, 
                         const std::string& frame_id = "camera_color_optical_frame") {
         if (!cloud || cloud->empty()) {
-            ROS_WARN("Input cloud is empty or null!");
+            RCLCPP_WARN(this->get_logger(), "Input cloud is empty or null!");
             return;
         }
 
         // 创建一个 PointCloud2 消息
-        sensor_msgs::PointCloud2 output;
+        sensor_msgs::msg::PointCloud2 output;
         
-        // 将 PCL 点云转换为 ROS PointCloud2 消息
+        // 将 PCL 点云转换为 ROS 2 PointCloud2 消息
         pcl::toROSMsg(*cloud, output);
         
         // 设置消息头
-        output.header.stamp = ros::Time::now();
+        output.header.stamp = this->now();
         output.header.frame_id = frame_id;
         
         // 发布消息
-        line_path_pub_.publish(output);
+        line_path_pub_->publish(output);
         
-        ROS_DEBUG("Published point cloud with %lu points", cloud->size());
+        RCLCPP_DEBUG(this->get_logger(), "Published point cloud with %lu points", cloud->size());
     }
 
-    visualization_msgs::MarkerArray createMarkerArray(const std::vector<cv::Point3f>& points_3d) {
-        visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::msg::MarkerArray createMarkerArray(const std::vector<cv::Point3f>& points_3d) {
+        visualization_msgs::msg::MarkerArray marker_array;
         
         // Clear previous markers
-        visualization_msgs::Marker delete_markers;
-        delete_markers.action = visualization_msgs::Marker::DELETEALL;
+        visualization_msgs::msg::Marker delete_markers;
+        delete_markers.action = visualization_msgs::msg::Marker::DELETEALL;
         marker_array.markers.push_back(delete_markers);
         
         // Create markers for each 3D point
         for (size_t i = 0; i < points_3d.size(); ++i) {
-            visualization_msgs::Marker marker;
+            visualization_msgs::msg::Marker marker;
             marker.header.frame_id = "camera_color_optical_frame";
-            marker.header.stamp = ros::Time::now();
+            marker.header.stamp = this->now();
             marker.ns = "line_points";
             marker.id = i;
-            marker.type = visualization_msgs::Marker::SPHERE;
-            marker.action = visualization_msgs::Marker::ADD;
+            marker.type = visualization_msgs::msg::Marker::SPHERE;
+            marker.action = visualization_msgs::msg::Marker::ADD;
             marker.pose.position.x = points_3d[i].x;
             marker.pose.position.y = points_3d[i].y;
             marker.pose.position.z = points_3d[i].z;
@@ -253,7 +261,7 @@ private:
             marker.color.g = 1.0;
             marker.color.b = 0.0;
             marker.color.a = 1.0;
-            marker.lifetime = ros::Duration(0.5);
+            marker.lifetime = rclcpp::Duration::from_seconds(0.5);
             
             marker_array.markers.push_back(marker);
         }
@@ -261,24 +269,24 @@ private:
         return marker_array;
     }
 
-    visualization_msgs::MarkerArray createMarkerArray(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, float r = 1, float g = 0, float b = 0, float duration = 1.0) {
-    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::msg::MarkerArray createMarkerArray(const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, float r = 1, float g = 0, float b = 0, float duration = 1.0) {
+    visualization_msgs::msg::MarkerArray marker_array;
     
     // Clear previous markers
-    visualization_msgs::Marker delete_markers;
-    delete_markers.action = visualization_msgs::Marker::DELETEALL;
+    visualization_msgs::msg::Marker delete_markers;
+    delete_markers.action = visualization_msgs::msg::Marker::DELETEALL;
     marker_array.markers.push_back(delete_markers);
     
     // Create markers for each 3D point
     for (size_t i = 0; i < cloud->size(); ++i) {
         const auto& point = cloud->points[i];
-        visualization_msgs::Marker marker;
+        visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "camera_color_optical_frame";  // 你的坐标系
-        marker.header.stamp = ros::Time::now();
+        marker.header.stamp = this->now();
         marker.ns = "filtered_points";
         marker.id = i;
-        marker.type = visualization_msgs::Marker::SPHERE;
-        marker.action = visualization_msgs::Marker::ADD;
+        marker.type = visualization_msgs::msg::Marker::SPHERE;
+        marker.action = visualization_msgs::msg::Marker::ADD;
         marker.pose.position.x = point.x;
         marker.pose.position.y = point.y;
         marker.pose.position.z = point.z;
@@ -290,7 +298,7 @@ private:
         marker.color.g = g;
         marker.color.b = b;
         marker.color.a = 1.0;    // 不透明
-        marker.lifetime = ros::Duration(duration);  // 0.5秒后自动消失
+        marker.lifetime = rclcpp::Duration::from_seconds(duration);  // 0.5秒后自动消失
         
         marker_array.markers.push_back(marker);
     }
@@ -327,7 +335,7 @@ private:
             int s = hsv_pixel[1];
             int v = hsv_pixel[2];
             
-            ROS_INFO("Clicked at (%d, %d) - HSV: (%d, %d, %d)", x, y, h, s, v);
+            RCLCPP_INFO(this->get_logger(), "Clicked at (%d, %d) - HSV: (%d, %d, %d)", x, y, h, s, v);
             
             // Update HSV ranges based on clicked point
             hmin_ = std::max(0, h - h_range_);
@@ -461,10 +469,10 @@ private:
 
             // Publish marked image
             cv_bridge::CvImage marked_img_msg;
-            marked_img_msg.header.stamp = ros::Time::now();
+            marked_img_msg.header.stamp = this->now();
             marked_img_msg.encoding = "bgr8";
             marked_img_msg.image = dst_.clone();
-            marked_image_pub_.publish(marked_img_msg.toImageMsg());
+            marked_image_pub_->publish(*marked_img_msg.toImageMsg());
         }
     }
 
@@ -699,7 +707,7 @@ private:
         return points;
     }
     
-    void imageCallback(const sensor_msgs::ImageConstPtr &msg) {
+    void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg) {
         try {
             cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, "bgr8");
             image_ = cv_ptr->image.clone();
@@ -710,11 +718,11 @@ private:
             }
         }
         catch (const cv_bridge::Exception &e) {
-            ROS_ERROR("Image callback error: %s", e.what());
+            RCLCPP_ERROR(this->get_logger(), "Image callback error: %s", e.what());
         }
     }
     
-    void depthCallback(const sensor_msgs::ImageConstPtr &msg) {
+    void depthCallback(const sensor_msgs::msg::Image::ConstSharedPtr msg) {
         try {
             cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, "16UC1");
             depth_ = cv_ptr->image.clone();
@@ -723,29 +731,27 @@ private:
             }
         }
         catch (const cv_bridge::Exception &e) {
-            ROS_ERROR("Depth callback error: %s", e.what());
+            RCLCPP_ERROR(this->get_logger(), "Depth callback error: %s", e.what());
         }
     }
     
-    void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg) {
+    void cameraInfoCallback(const sensor_msgs::msg::CameraInfo::ConstSharedPtr msg) {
         if (!camera_info_received_) {
             K_ = cv::Mat(3, 3, CV_32F);
             for (int i = 0; i < 9; ++i)
-                K_.at<float>(i/3, i%3) = msg->K[i];
+                K_.at<float>(i/3, i%3) = msg->k[i];
 
             camera_info_received_ = true;
-            ROS_INFO_STREAM("Camera matrix:\n" << K_);
+            RCLCPP_INFO_STREAM(this->get_logger(), "Camera matrix:\n" << K_);
         }
     }
 
 };
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "line_detection_node");
-    ros::NodeHandle nh("~");  // Private node handle for parameters
-    
-    LineDetector detector(nh);
-    detector.run();
-    
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<LineDetector>();
+    node->run();
+    rclcpp::shutdown();
     return 0;
 }

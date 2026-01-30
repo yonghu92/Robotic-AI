@@ -79,8 +79,8 @@ PiPER机械臂、手柄遥操、关节控制、位姿控制、夹爪控制、运
       git clone https://github.com/chenhaox/pytracik.git
       cd pytracik
       pip install -r requirements.txt
-      sudo apt install libboost-all-dev libeigen3-dev liborocos-kdl-dev libnlopt-dev libnlopt-cxx-dev
-      python setup_linux.py install
+      sudo apt install g++ libboost-all-dev libeigen3-dev liborocos-kdl-dev libnlopt-dev libnlopt-cxx-dev
+      python setup_linux.py install --user
       ```
 
       需要在`main.py`和`main_virtual.py`文件中选择`from src.gamepad_trac_ik import RoboticArmController`
@@ -147,3 +147,7 @@ PiPER机械臂、手柄遥操、关节控制、位姿控制、夹爪控制、运
 - 数值解在接近临界点时可能出现大幅度的关节跳动，请保持安全距离，否则后果自负
 - 快速响应模式（0xAD）很危险，请谨慎使用，如要使用请保持安全距离，否则后果自负
 - 如果选择使用pinocchio库，需要提前source机械臂的ros工作空间，否则会找不到meshes文件
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=kehuanjack/Gamepad_PiPER&type=date&legend=top-left)](https://www.star-history.com/#kehuanjack/Gamepad_PiPER&type=date&legend=top-left)

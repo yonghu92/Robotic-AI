@@ -79,8 +79,8 @@ PiPER Robotic Arm, Gamepad Teleoperation, Joint Control, Pose Control, Gripper C
       git clone https://github.com/chenhaox/pytracik.git
       cd pytracik
       pip install -r requirements.txt
-      sudo apt install libboost-all-dev libeigen3-dev liborocos-kdl-dev libnlopt-dev libnlopt-cxx-dev
-      python setup_linux.py install
+      sudo apt install g++ libboost-all-dev libeigen3-dev liborocos-kdl-dev libnlopt-dev libnlopt-cxx-dev
+      python setup_linux.py install --user
       ```
 
       You need to select `from src.gamepad_trac_ik import RoboticArmController` in the `main.py` and `main_virtual.py` files.
@@ -147,3 +147,7 @@ PiPER Robotic Arm, Gamepad Teleoperation, Joint Control, Pose Control, Gripper C
 - Numerical solutions may cause significant joint jumps near critical points. Maintain a safe distance. Proceed at your own risk.
 - Quick response mode (0xAD) is dangerous. Use with extreme caution. Maintain a safe distance if used. Proceed at your own risk.
 - If using the pinocchio library, you need to source the robotic arm's ROS workspace in advance; otherwise, mesh files will not be found.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=kehuanjack/Gamepad_PiPER&type=date&legend=top-left)](https://www.star-history.com/#kehuanjack/Gamepad_PiPER&type=date&legend=top-left)

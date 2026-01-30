@@ -1,0 +1,39 @@
+# RealSense D455F Camera Intrinsics
+# Factory calibrated - extracted from camera_info topic
+# Generated: 2026-01-21
+
+camera_name: realsense_d455f
+serial_number: "341522301193"
+
+color_camera:
+  width: 640
+  height: 480
+  frame_id: camera_color_optical_frame
+  distortion_model: plumb_bob
+  # Camera matrix K [fx, 0, cx; 0, fy, cy; 0, 0, 1]
+  fx: 386.2036437988281
+  fy: 385.8199462890625
+  cx: 313.97113037109375
+  cy: 246.66712951660156
+  # Distortion coefficients [k1, k2, p1, p2, k3]
+  distortion:
+    k1: -0.05672111734747887
+    k2: 0.06728841364383698
+    p1: -0.00043161233770661056
+    p2: 0.0005670103128068149
+    k3: -0.021844936534762383
+
+depth_camera:
+  width: 640
+  height: 480
+  frame_id: camera_depth_optical_frame
+  # Note: Depth intrinsics from camera_info topic
+  # Will be populated when needed
+
+# ROS2 topics
+topics:
+  color_image: /camera/camera/color/image_raw
+  color_info: /camera/camera/color/camera_info
+  depth_image: /camera/camera/depth/image_rect_raw
+  depth_info: /camera/camera/depth/camera_info
+  depth_to_color_extrinsics: /camera/camera/extrinsics/depth_to_color
