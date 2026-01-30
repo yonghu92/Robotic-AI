@@ -1,103 +1,103 @@
-# 机械臂连续轨迹录制与播放
+# Robotic Arm Continuous Trajectory Recording and Playback
 
-## 摘要
-本文提供两个Python脚本（`recordTrajectory_new` 和 `playTrajectory_new`），用于录制和播放Piper机械臂的连续运动轨迹。与点位录制不同，此系统能够记录机械臂运动过程中的时间间隔信息，实现更加流畅和自然的动作复现。
+## Summary
+This document provides two Python scripts (`recordTrajectory_new` and `playTrajectory_new`) for recording and playing back continuous motion trajectories of the Piper robotic arm. Unlike point-based recording, this system captures time interval information during arm movement, enabling smoother and more natural motion reproduction.
 
-## 功能特点
-- **连续轨迹录制** (`recordTrajectory_new.py`)：实时记录机械臂运动过程中的关节弧度、夹爪状态及时间间隔
-- **精确轨迹回放** (`playTrajectory_new.py`)：按照录制时的时间关系复现机械臂运动轨迹
-- **倍速控制**：支持调整播放速度（0.1-2倍速），灵活控制回放节奏
-- **安全机制**：包含超时检测、急停恢复和关节限制保护，确保操作安全
+## Features
+- **Continuous Trajectory Recording** (`recordTrajectory_new.py`): Real-time recording of joint angles, gripper state, and time intervals during arm motion
+- **Precise Trajectory Playback** (`playTrajectory_new.py`): Reproduces arm motion according to the recorded timing relationships
+- **Speed Control**: Supports playback speed adjustment (0.1x-2x) for flexible playback rhythm
+- **Safety Mechanisms**: Includes timeout detection, emergency stop recovery, and joint limit protection for safe operation
 
-## 环境配置
-- **操作系统**：Ubuntu（推荐Ubuntu 18.04或更高版本）
-- **Python环境**：Python 3.6或更高版本
-- **安装CAN工具**
+## Environment Setup
+- **Operating System**: Ubuntu (Ubuntu 18.04 or higher recommended)
+- **Python Environment**: Python 3.6 or higher
+- **Install CAN Tools**
 
     ```bash
     sudo apt install can-utils ethtool
     ```
 
-- **安装piper_sdk**：
+- **Install piper_sdk**:
 
     ```bash
     pip3 install piper_sdk
     ```
 
-- **参考文档**：https://github.com/agilexrobotics/piper_sdk/blob/master/README(ZH).MD
+- **Reference Documentation**: https://github.com/agilexrobotics/piper_sdk/blob/master/README(ZH).MD
 
-## 使用方法
+## Usage
 
-### 1. 录制连续轨迹
+### 1. Record Continuous Trajectory
 ```bash
 python3 recordTrajectory_new.py
 ```
-- 运行后按照提示开启示教模式
-- 按回车键开始录制，机械臂移动时会自动记录轨迹点
-- 录制完成后程序自动保存数据到`trajectory.csv`文件
-- 录制时间可通过`record_time`参数设置（0表示无限录制）
+- Follow the prompts to enable teach mode after running
+- Press Enter to start recording; trajectory points are automatically recorded as the arm moves
+- After recording, data is automatically saved to `trajectory.csv`
+- Recording duration can be set via the `record_time` parameter (0 = unlimited)
 
-### 2. 播放连续轨迹
+### 2. Play Continuous Trajectory
 ```bash
 python3 playTrajectory_new.py
 ```
-- 确保机械臂已退出示教模式
-- 按回车开始播放，机械臂将按照录制时的时间关系复现运动轨迹
-- 可通过参数调整播放速度、次数等（需修改脚本内参数）
+- Ensure the arm has exited teach mode
+- Press Enter to start playback; the arm will reproduce the motion according to recorded timing
+- Playback speed, repetitions, etc. can be adjusted via script parameters
 
-## 参数说明（脚本内可调整）
+## Parameter Reference (Adjustable in Scripts)
 
 ### recordTrajectory_new.py / recordTrajectory_new_en.py
-- `have_gripper`：是否启用夹爪（默认 `True`）
-- `record_time`：最大录制时间，单位：秒（0表示无限长）
-- `timeout`：示教模式检测超时时间，单位：秒
+- `have_gripper`: Enable gripper (default `True`)
+- `record_time`: Maximum recording time in seconds (0 = unlimited)
+- `timeout`: Teach mode detection timeout in seconds
 
 ### playTrajectory_new.py / playTrajectory_new_en.py
-- `have_gripper`：是否启用夹爪（默认 `True`）
-- `play_times`：播放次数（0为无限循环）
-- `play_interval`：播放间隔，单位：秒
-- `move_spd_rate_ctrl`：运动速度百分比（建议10-100）
-- `play_speed`：播放倍速（建议范围：0.1-2）
-- `timeout`：CAN模式切换超时时间，单位：秒
+- `have_gripper`: Enable gripper (default `True`)
+- `play_times`: Number of playback repetitions (0 = infinite loop)
+- `play_interval`: Interval between playbacks in seconds
+- `move_spd_rate_ctrl`: Movement speed percentage (recommended 10-100)
+- `play_speed`: Playback speed multiplier (recommended range: 0.1-2)
+- `timeout`: CAN mode switch timeout in seconds
 
-## 详细步骤
-1. 机械臂上电，将USB转CAN模块与电脑连接（确保只连接一个CAN模块）
+## Detailed Steps
+1. Power on the arm and connect the USB-to-CAN module to the computer (ensure only one CAN module is connected)
 
-2. 打开终端，激活CAN模块  
+2. Open a terminal and activate the CAN module
 
     `sudo ip link set can0 up type can bitrate 1000000`
 
-3. 克隆远程代码仓库
+3. Clone the remote repository
 
     `git clone https://github.com/agilexrobotics/Agilex-College.git`
 
-4. 切换至`recordAndPlayTraj`目录
+4. Navigate to the `recordAndPlayTraj` directory
 
     `cd Agilex-College/piper/recordAndPlayTraj/`
 
-5. 运行录制程序  
+5. Run the recording program
 
     `python3 recordTrajectory_new.py`
 
-6. 短按示教按钮进入示教模式
+6. Short-press the teach button to enter teach mode
 
     ![](https://cdn.nlark.com/yuque/0/2025/png/51616906/1755248995720-91c32fef-8189-48a9-9a1d-698dede6c9b5.png)
 
-7. 摆放好机械臂的初始位置，终端回车后，拖动机械臂即可进行轨迹的录制
+7. Position the arm at the initial position, press Enter in the terminal, then drag the arm to record the trajectory
 
     ![](https://cdn.nlark.com/yuque/0/2025/png/51616906/1752571795765-29a3bc22-5c15-47ec-9d03-09939eb74290.png)
 
-8. 录制结束后，再次短按示教按钮退出示教模式
+8. After recording, short-press the teach button again to exit teach mode
 
     ![](https://cdn.nlark.com/yuque/0/2025/png/51616906/1755249001510-aa36e773-4b75-4e7e-85b6-f48a2d4f2950.png)
 
-9. 播放前须知：  
-初次退出示教模式时，需要经过特定的初始化过程才能从示教模式切换到CAN模式，因此播放程序会自动执行复位操作，将2、3、5号关节回到安全位置（零点），防止机械臂在重力作用下突然下落造成损坏，在特殊情况下需要人工辅助2、3、5关节回到零点
+9. Pre-playback notice:
+When exiting teach mode for the first time, a specific initialization process is required to switch from teach mode to CAN mode. Therefore, the playback program will automatically perform a reset operation, returning joints 2, 3, and 5 to safe positions (zero point) to prevent the arm from suddenly falling under gravity. In special cases, manual assistance may be needed to return joints 2, 3, and 5 to zero.
 
-10. 运行播放程序
+10. Run the playback program
 
     `python3 playTrajectory_new.py`
 
-11. 使能成功后，终端回车即可播放轨迹
+11. After successful enabling, press Enter in the terminal to play the trajectory
 
     ![](https://cdn.nlark.com/yuque/0/2025/png/51616906/1752572703619-b75279b1-b93e-41a0-930e-05af4088abd4.png)
