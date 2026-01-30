@@ -1,83 +1,218 @@
 # Piper Arm Robotics Project
 
-> **Branch: `anika-rgi-gripper-integration`** - RGI Gripper Integration & Control Systems
+A comprehensive robotics project featuring the Piper 6-DOF robotic arm with vision-guided manipulation, multiple control interfaces, and imitation learning capabilities.
 
-## Quick Navigation
+---
 
-| Feature | Location | Description |
-|---------|----------|-------------|
-| **Main Control** | [`rgi_gripper/play_and_adjust.py`](rgi_gripper/play_and_adjust.py) | Trajectory recording, playback, gamepad control |
-| **Web Interface** | [`rgi_gripper/web_controller.py`](rgi_gripper/web_controller.py) | Remote control with live camera |
-| **Training Data** | [`training_data_samples/`](training_data_samples/) | Pick-and-place demo images & GIF |
-| **Documentation** | [`docs/`](docs/) | Setup guides, troubleshooting |
-| **Camera Scripts** | [`scripts/camera/`](scripts/camera/) | RealSense utilities |
-| **Project Summary** | [`PROJECT_MONTHLY_SUMMARY.pdf`](PROJECT_MONTHLY_SUMMARY.pdf) | Full month overview |
+## Project Highlights
 
-## Quick Start
+| Feature | Description | Location |
+|---------|-------------|----------|
+| **Pick & Place** | Vision-guided object manipulation with depth camera | [`piper/manipulation/`](piper/manipulation/) |
+| **Trajectory Recording** | Record and playback arm movements using teach mode | [`piper/recordAndPlayTraj/`](piper/recordAndPlayTraj/) |
+| **Hand Gesture Control** | Arm mimics physical hand movements in real-time | [`piper/handpose_det/`](piper/handpose_det/) |
+| **Gamepad Control** | Full arm control with Logitech gamepad | [`piper/gamepad/`](piper/gamepad/) |
+| **RGI Rotating Gripper** | Integrated rotating gripper with open/close/rotate | [`rgi_gripper/`](rgi_gripper/) |
+| **Web Remote Control** | Browser-based control with live camera feed | [`rgi_gripper/web_controller.py`](rgi_gripper/web_controller.py) |
+| **Camera Calibration** | Hand-eye calibration for accurate positioning | [`piper/calibration/`](piper/calibration/) |
+| **Imitation Learning** | LeRobot ACT policy training and deployment | Training data samples included |
+| **ROS2 Integration** | URDF, RViz2, inverse kinematics solver | [`piper/piper_kinematics/`](piper/piper_kinematics/) |
 
-```bash
-# Setup CAN
-sudo ip link set can0 up type can bitrate 1000000
-
-# Run main control
-cd rgi_gripper && python3 play_and_adjust.py
-
-# Or web control
-python3 web_controller.py  # Open http://localhost:5000
-```
-
-## Project Structure
-
-```
-├── rgi_gripper/          # Main control scripts
-├── piper/                # Arm components (calibration, gamepad, manipulation)
-├── training_data_samples/# Demo training data
-├── docs/                 # All documentation
-└── scripts/              # Utility scripts (setup, camera, CAN debug)
-```
+---
 
 ## Demo
 
 ![Pick and Place Demo](training_data_samples/pick_and_place_demo.gif)
 
+*Wrist camera view during pick-and-place task with red cube*
+
 ---
 
-# 松灵学院开源技术贴
+## Quick Start
 
-**一站式代码仓库**
+### 1. Setup CAN Bus
+```bash
+sudo ip link set can0 up type can bitrate 1000000
+```
 
-松灵学院面向所有开发者、高校团队与爱好者，持续发布基于松灵机器人全线产品的**开源示例与教程**。无论你是初次接触，还是想快速落地项目，都能在这里找到“拿即可用”的代码与步骤说明。更多产品DEMO示例将陆续上线，欢迎 Star、提 Issue 或一起共建。
+### 2. Main Control (Trajectories + Gamepad + Gripper)
+```bash
+cd rgi_gripper
+python3 play_and_adjust.py
+```
 
-当前聚焦：Piper 系列机械臂
+### 3. Web Control Interface
+```bash
+cd rgi_gripper
+python3 web_controller.py
+# Open http://localhost:5000 in browser
+```
 
-| 标题                                                         | 描述                                            |
-| ------------------------------------------------------------ | ----------------------------------------------- |
-| [固定点位录制与播放](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/recordAndPlayPos) | 使用Piper录制固定点位运动并播放                 |
-| [连续轨迹录制与播放](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/recordAndPlayTraj) | 使用Piepr录制连续运动的轨迹并播放               |
-| [机械臂识别方块与曲线](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/cubeAndLineDet) | 使用相机识别方块和曲线；并使Piper机械臂跟随曲线 |
-| [手机陀螺仪遥操机械臂](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/mobilePhoneCtl) | 使用手机陀螺仪遥操机械臂臂                      |
-| [手势遥操机械臂](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/handpose_det) | 使用手势遥操作Piper机械臂末端六自由度位姿       |
-| [Piper_kinematics](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/piper_kinematics) | 机械臂逆解数值教学与Piper底层解析解的调用       |
-| [游戏手柄](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/gamepad) | 使用游戏手柄遥操机械臂                          |
-| [手眼标定](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/handeye) | Piper手眼标定教程                               |
-| [GraspGen](https://github.com/agilexrobotics/Agilex-College/tree/master/piper/GraspGen) | 位姿生成与抓取                                  |
-| [Piper_rl](https://github.com/vanstrong12138/Piper_rl.git)   | PiPER强化学习demo                               |
-| [Isaac sim 导入piper](https://github.com/agilexrobotics/Agilex-College/tree/master/isaac_sim/piper_isaac_sim) | 在Isaac sim 中导入piper并添加摄像头             |
-| [复现RDA_planner](https://github.com/agilexrobotics/Agilex-College/tree/master/limo/RDA_planner) | 复现RDA_planner                                 |
+### 4. Gamepad-Only Control
+```bash
+cd piper/gamepad
+python3 gamepadecontrol.py
+```
 
+---
 
+## Project Structure
 
-更多内容欢迎关注松灵机器人
+```
+├── rgi_gripper/                  # RGI Gripper + Main Control System
+│   ├── play_and_adjust.py        # Trajectory record/play + gamepad + gripper
+│   ├── web_controller.py         # Web interface with live camera
+│   ├── rotation_arm_gamepad.py   # Combined arm + gripper gamepad control
+│   └── saved_positions.json      # Saved trajectories
+│
+├── piper/
+│   ├── manipulation/             # Pick and Place Scripts
+│   │   ├── pick_and_place.py
+│   │   ├── pick_and_place_calibrated.py
+│   │   ├── object_detection_pick_place.py
+│   │   ├── hand_to_arm_control.py
+│   │   └── sim_to_real_bridge.py
+│   │
+│   ├── recordAndPlayTraj/        # Trajectory Recording & Playback
+│   │   ├── recordTrajectory_new_en.py
+│   │   └── playTrajectory_new_en.py
+│   │
+│   ├── recordAndPlayPos/         # Position Recording & Playback
+│   │   ├── recordPos.py
+│   │   ├── playPos.py
+│   │   └── goHome.py
+│   │
+│   ├── handpose_det/             # Hand Gesture Control
+│   │   └── (hand tracking to arm control)
+│   │
+│   ├── gamepad/                  # Gamepad Control
+│   │   ├── gamepadecontrol.py
+│   │   └── main.py
+│   │
+│   ├── calibration/              # Camera Calibration
+│   │   ├── hand_eye_calibration.py
+│   │   ├── camera_intrinsics.yaml
+│   │   ├── charuco_board_A4.png
+│   │   └── verify_calibration.py
+│   │
+│   ├── piper_kinematics/         # ROS2 Kinematics Package
+│   │   ├── scripts/piper_ik_node.py
+│   │   └── launch/
+│   │
+│   ├── cubeAndLineDet/           # Object Detection (ROS2)
+│   │   ├── depth_camera_gui.py
+│   │   └── src/cube_det.cpp
+│   │
+│   └── detection/                # Color-based Detection
+│       ├── object_detector.py
+│       └── calibrate_colors.py
+│
+├── training_data_samples/        # Imitation Learning Demo Data
+│   ├── pick_and_place_demo.gif   # Animated demo
+│   ├── episode1_*.png            # Sample frames
+│   └── info.json                 # Dataset metadata
+│
+├── docs/                         # Documentation (18 guides)
+│   ├── QUICK_SETUP.md
+│   ├── CAN_TROUBLESHOOTING.md
+│   ├── HOW_TO_USE_RVIZ2.md
+│   └── ...
+│
+├── scripts/                      # Utility Scripts
+│   ├── setup/                    # Installation & setup
+│   ├── camera/                   # Camera utilities
+│   └── can_debug/                # CAN bus debugging
+│
+├── PROJECT_MONTHLY_SUMMARY.md    # Detailed project summary
+└── PROJECT_MONTHLY_SUMMARY.pdf   # PDF version
+```
 
-网站：https://global.agilex.ai/
+---
 
-微信公众号：松灵机器人
+## Key Accomplishments
 
-------
+### 1. Vision-Guided Manipulation
+- Integrated RealSense/Orbbec depth cameras
+- Implemented object detection (color-based and depth-based)
+- Built pick-and-place pipeline with coordinate transforms
 
-**声明**
+### 2. Multiple Control Interfaces
+- **Gamepad**: Full 6-DOF control with speed adjustment
+- **Web Interface**: Remote control with live video streaming
+- **Teach Mode**: Physical manipulation for trajectory recording
+- **Hand Gestures**: Arm follows hand movements in real-time
 
-本仓库内所有内容均为松灵机器人合法拥有，仅限个人学习、研究使用，超出上述范围的使用（包括但不限于基于商业用途的复制、修改、在发布衍生开发等）均需事先获得松灵机器人的书面授权；对于未经授权使用本公司相关作品的行为，本公司将依法追究其法律责任。
+### 3. Trajectory System
+- Record movements using teach mode (press ENTER to stop)
+- Save multiple named trajectories to JSON
+- Playback with precise timing
+- Management: rename, delete, view details, re-record
 
-如需授权请联系 [support@agilex.ai](https://github.com/agilexrobotics/Agilex-College/blob/master)
+### 4. RGI Rotating Gripper Integration
+- Modbus RTU serial communication
+- Thread-safe concurrent control
+- Open/close + rotation (specify degrees and direction)
 
+### 5. Camera Calibration
+- Hand-eye calibration using ChArUco markers
+- Camera intrinsics calibration
+- Coordinate transform verification
+
+### 6. Imitation Learning (LeRobot)
+- Dataset collection with gamepad teleoperation
+- ACT (Action Chunking Transformer) policy training
+- Real robot deployment
+
+### 7. ROS2 Integration
+- URDF visualization in RViz2
+- Inverse kinematics solver
+- Sim-to-real bridge
+
+---
+
+## Hardware
+
+| Component | Model |
+|-----------|-------|
+| Robot Arm | Piper 6-DOF |
+| Gripper | RGI Rotating Gripper |
+| Depth Camera | Intel RealSense D435 / Orbbec Astra |
+| Controller | Logitech Gamepad |
+| Communication | CAN Bus @ 1Mbps |
+
+---
+
+## Documentation
+
+All guides are in the [`docs/`](docs/) folder:
+
+| Category | Guides |
+|----------|--------|
+| **Setup** | QUICK_SETUP, ROS_SETUP_GUIDE, BUILD_AND_RUN_ROS2 |
+| **Visualization** | HOW_TO_USE_RVIZ2, LOAD_ROBOT_IN_RVIZ2, RVIZ2_SETUP_GUIDE |
+| **Troubleshooting** | CAN_TROUBLESHOOTING, CAN_DEBUG_FIX |
+| **Tutorials** | SIM_TO_REAL_GUIDE, QUICK_START_CUBE_DET |
+
+---
+
+## Technologies
+
+**Languages:** Python, C++, Bash
+
+**Frameworks:** ROS2 Jazzy, OpenCV, Flask, PyTorch, LeRobot
+
+**Hardware Protocols:** CAN Bus, Modbus RTU, USB Serial
+
+**Tools:** RViz2, Pygame, WebSockets
+
+---
+
+## Author
+
+**Anika226** - Full system integration, control interfaces, trajectory system, web controller
+
+---
+
+## License
+
+See individual component licenses. Original Piper resources from Agilex Robotics.
