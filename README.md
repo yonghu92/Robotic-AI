@@ -1,6 +1,48 @@
+# Piper Arm Robotics Project
 
+> **Branch: `anika-rgi-gripper-integration`** - RGI Gripper Integration & Control Systems
 
-# 松灵学院开源技术贴  
+## Quick Navigation
+
+| Feature | Location | Description |
+|---------|----------|-------------|
+| **Main Control** | [`rgi_gripper/play_and_adjust.py`](rgi_gripper/play_and_adjust.py) | Trajectory recording, playback, gamepad control |
+| **Web Interface** | [`rgi_gripper/web_controller.py`](rgi_gripper/web_controller.py) | Remote control with live camera |
+| **Training Data** | [`training_data_samples/`](training_data_samples/) | Pick-and-place demo images & GIF |
+| **Documentation** | [`docs/`](docs/) | Setup guides, troubleshooting |
+| **Camera Scripts** | [`scripts/camera/`](scripts/camera/) | RealSense utilities |
+| **Project Summary** | [`PROJECT_MONTHLY_SUMMARY.pdf`](PROJECT_MONTHLY_SUMMARY.pdf) | Full month overview |
+
+## Quick Start
+
+```bash
+# Setup CAN
+sudo ip link set can0 up type can bitrate 1000000
+
+# Run main control
+cd rgi_gripper && python3 play_and_adjust.py
+
+# Or web control
+python3 web_controller.py  # Open http://localhost:5000
+```
+
+## Project Structure
+
+```
+├── rgi_gripper/          # Main control scripts
+├── piper/                # Arm components (calibration, gamepad, manipulation)
+├── training_data_samples/# Demo training data
+├── docs/                 # All documentation
+└── scripts/              # Utility scripts (setup, camera, CAN debug)
+```
+
+## Demo
+
+![Pick and Place Demo](training_data_samples/pick_and_place_demo.gif)
+
+---
+
+# 松灵学院开源技术贴
 
 **一站式代码仓库**
 
