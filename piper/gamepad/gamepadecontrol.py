@@ -5,9 +5,71 @@
 
 import time
 import pygame
+import subprocess
+import sys
 from piper_sdk import C_PiperInterface_V2
 
+def check_can_interface(interface="can0"):
+    """Check if CAN interface exists and is UP"""
+    try:
+        # Check if interface exists
+        result = subprocess.run(
+            ["ip", "link", "show", interface],
+            capture_output=True,
+            text=True,
+            
+            timeout=2
+        )
+        
+        if result.returncode != 0:
+            print(f"❌ CAN interface '{interface}' does not exist!")
+            print(f"   Error: {result.stderr}")
+            return False
+        
+        # Check if interface is UP
+        if "state UP" in result.stdout or "UP" in result.stdout:
+            # Also check bitrate
+            bitrate_result = subprocess.run(
+                ["ip", "-details", "link", "show", interface],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if "bitrate 1000000" in bitrate_result.stdout:
+                print(f"✓ CAN interface '{interface}' is UP and configured (1Mbps)")
+                return True
+            else:
+                print(f"⚠ CAN interface '{interface}' is UP but bitrate may be incorrect")
+                print("   Expected: 1000000 bps")
+                return True  # Still try to connect
+        else:
+            print(f"❌ CAN interface '{interface}' is DOWN")
+            print("\n" + "="*60)
+            print("CAN INTERFACE NEEDS TO BE ACTIVATED")
+            print("="*60)
+            print("\nTo activate the CAN interface, run these commands:")
+            print(f"  sudo ip link set {interface} down")
+            print(f"  sudo ip link set {interface} type can bitrate 1000000")
+            print(f"  sudo ip link set {interface} up")
+            print("\nOr use the activation script:")
+            print("  bash piper_sdk/piper_sdk/can_activate.sh can0 1000000")
+            print("\n" + "="*60)
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print(f"⚠ Timeout checking CAN interface '{interface}'")
+        return False
+    except Exception as e:
+        print(f"⚠ Error checking CAN interface: {e}")
+        return False
+
 print("=== Gamepad Control Script ===")
+
+# Check CAN interface before proceeding
+print("\nChecking CAN interface...")
+if not check_can_interface("can0"):
+    print("\n❌ Cannot proceed without active CAN interface. Exiting.")
+    sys.exit(1)
 
 # Initialize pygame and joystick
 pygame.init()
@@ -25,7 +87,14 @@ else:
     print(f"Axes: {joystick.get_numaxes()}, Buttons: {joystick.get_numbuttons()}")
 
 # Initialize and connect to Piper arm
-piper = C_PiperInterface_V2("can0")
+print("\nConnecting to Piper arm on can0...")
+try:
+    piper = C_PiperInterface_V2("can0")
+except Exception as e:
+    print(f"\n❌ Failed to initialize CAN interface: {e}")
+    print("\nThe interface may have gone down. Try activating it again:")
+    print("  bash piper_sdk/piper_sdk/can_activate.sh can0 1000000")
+    sys.exit(1)
 
 piper.ConnectPort()
 time.sleep(0.5)
@@ -111,6 +180,9 @@ else:
           f"joint3={joints.joint_3/1000:.1f}, joint4={joints.joint_4/1000:.1f}, "
           f"joint5={joints.joint_5/1000:.1f}, joint6={joints.joint_6/1000:.1f}")
 
+# Wait for user to be ready before starting gamepad control
+input("\nArm is at home position. Press Enter to start gamepad control...")
+
 # Re-enable arm before starting control (REQUIRED for JointCtrl to work!)
 print("\nRe-enabling arm for control...")
 enabled = False
@@ -158,13 +230,13 @@ SPEED = 500  # millidegrees per loop (0.5 degrees per loop)
 
 # Main control loop - J1 & J2 control with D-pad and Left Stick
 try:
-    DEADZONE = 0.1  # Deadzone for left stick to avoid drift
-    STICK_SCALE = 2.0  # Scale factor for left stick sensitivity
-    
+    DEADZONE = 0.15  # Deadzone for sticks to avoid drift
+    STICK_SCALE = 2.0  # Scale factor for stick sensitivity
+
     # Gripper state (range: 0 = closed, 70000 = fully open, in micrometers)
     gripper_state = 0  # 0 = closed, 70000 = fully open
     GRIPPER_STEP = 1500  # Step size for gripper movement per loop
-    
+
     # Overall speed multiplier for all joints (adjustable with LB/RB buttons)
     speed_multiplier = 1.0  # Initial speed multiplier (1.0 = 100%)
     speed_multiplier_min = 0.25  # Minimum speed (25%)
@@ -173,10 +245,17 @@ try:
     last_lb_button = False
     last_rb_button = False
     last_r3_button = False
-    
+
+    # Event-driven axis tracking: start at 0, only update when axis actually moves
+    # This prevents bad initial values (some controllers report -1.0 on all axes at startup)
+    axis_values = [0.0] * max(joystick.get_numaxes(), 6)
+
     while True:
-        pygame.event.pump()
-        
+        # Process events - update axis values ONLY when they actually change
+        for event in pygame.event.get():
+            if event.type == pygame.JOYAXISMOTION:
+                axis_values[event.axis] = event.value
+
         # Get D-pad input (hat 0)
         # hat[0] = -1 (LEFT), 0 (none), 1 (RIGHT)
         # hat[1] = -1 (DOWN), 0 (none), 1 (UP)
@@ -187,37 +266,29 @@ try:
         else:
             dpad_x = 0
             dpad_y = 0
-        
-        # Get Left Stick input (axes 0 and 1)
+
+        # Get Left Stick input from event-tracked values
         # axis 0 = X (LEFT = -1.0, RIGHT = +1.0)
         # axis 1 = Y (UP = -1.0, DOWN = +1.0) - Note: pygame Y is inverted
-        if joystick.get_numaxes() >= 2:
-            stick_x = joystick.get_axis(0)  # Left stick X
-            stick_y = joystick.get_axis(1)  # Left stick Y
-            
-            # Apply deadzone
-            if abs(stick_x) < DEADZONE:
-                stick_x = 0.0
-            if abs(stick_y) < DEADZONE:
-                stick_y = 0.0
-        else:
+        stick_x = axis_values[0]
+        stick_y = axis_values[1]
+
+        # Apply deadzone
+        if abs(stick_x) < DEADZONE:
             stick_x = 0.0
+        if abs(stick_y) < DEADZONE:
             stick_y = 0.0
-        
-        # Get Right Stick input (axes 2 and 3) - Linux mapping (based on test_controller.py)
+
+        # Get Right Stick input from event-tracked values
         # axis 2 = X (LEFT = -1.0, RIGHT = +1.0)
-        # axis 3 = Y (UP = -1.0, DOWN = +1.0) - Note: pygame Y is inverted, will be inverted
-        if joystick.get_numaxes() >= 4:
-            right_stick_x = joystick.get_axis(2)  # Right stick X (axis 2)
-            right_stick_y = -joystick.get_axis(3)  # Right stick Y (axis 3, inverted)
-            
-            # Apply deadzone
-            if abs(right_stick_x) < DEADZONE:
-                right_stick_x = 0.0
-            if abs(right_stick_y) < DEADZONE:
-                right_stick_y = 0.0
-        else:
+        # axis 3 = Y (UP = -1.0, DOWN = +1.0) - inverted below
+        right_stick_x = axis_values[2]
+        right_stick_y = -axis_values[3]  # Invert Y
+
+        # Apply deadzone
+        if abs(right_stick_x) < DEADZONE:
             right_stick_x = 0.0
+        if abs(right_stick_y) < DEADZONE:
             right_stick_y = 0.0
         
         # Overall speed control for all joints using LB (button 4) and RB (button 5)

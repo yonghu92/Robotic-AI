@@ -26,7 +26,7 @@ import struct
 
 # ============ Configuration ============
 POSITIONS_FILE = os.path.join(os.path.dirname(__file__), "saved_positions.json")
-RGI_SERIAL_PORT = '/dev/ttyUSB1'
+RGI_SERIAL_PORT = '/dev/ttyUSB0'
 RGI_BAUDRATE = 115200
 MOVE_SPD_RATE = 50
 
@@ -144,25 +144,38 @@ class CameraHandler:
             self.thread.join(timeout=2.0)
 
     def _opencv_loop(self):
-        """Get frames directly from Orbbec camera via OpenCV"""
-        print("[..] Opening Orbbec camera at /dev/video4...")
+        """Get frames directly from Orbbec/Astra camera via OpenCV"""
+        print("[..] Opening Astra Pro HD camera...")
 
-        self.cap = cv2.VideoCapture('/dev/video4', cv2.CAP_V4L2)
-
-        if not self.cap.isOpened():
-            print("[WARN] /dev/video4 failed, trying index 4...")
-            self.cap = cv2.VideoCapture(4)
+        # Try device index 4 first (corresponds to /dev/video4)
+        self.cap = cv2.VideoCapture(4)
 
         if not self.cap.isOpened():
-            print("[WARN] Index 4 failed, trying index 0...")
+            print("[WARN] Index 4 failed, trying index 5...")
+            self.cap = cv2.VideoCapture(5)
+
+        if not self.cap.isOpened():
+            print("[WARN] Index 5 failed, trying index 0...")
             self.cap = cv2.VideoCapture(0)
 
+        if not self.cap.isOpened():
+            print("[WARN] Index 0 failed, trying /dev/video4 path...")
+            self.cap = cv2.VideoCapture('/dev/video4')
+
         if self.cap.isOpened():
+            # Set MJPG format first (faster than YUYV)
+            fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+            self.cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+            # Then set resolution and FPS
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             self.cap.set(cv2.CAP_PROP_FPS, 30)
             self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-            print("[OK] Camera opened successfully")
+            # Read actual settings
+            actual_w = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            actual_h = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            actual_fps = self.cap.get(cv2.CAP_PROP_FPS)
+            print(f"[OK] Camera opened: {int(actual_w)}x{int(actual_h)} @ {actual_fps} FPS")
         else:
             print("[ERROR] Could not open any camera!")
 
@@ -183,7 +196,12 @@ class CameraHandler:
                         print(f"[WARN] Too many camera errors, reconnecting...")
                         self.cap.release()
                         time.sleep(1)
-                        self.cap = cv2.VideoCapture('/dev/video4', cv2.CAP_V4L2)
+                        self.cap = cv2.VideoCapture(4)
+                        if self.cap.isOpened():
+                            fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+                            self.cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+                            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
                         error_count = 0
             else:
                 # No camera - show placeholder
@@ -837,7 +855,7 @@ def main():
     print("\nPress Ctrl+C to stop\n")
 
     # Run Flask
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False, allow_unsafe_werkzeug=True)
 
 
 if __name__ == '__main__':
